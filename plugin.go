@@ -13,7 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// GetGotifyPluginInfo returns gotify plugin info.
 func GetGotifyPluginInfo() plugin.Info {
 	return plugin.Info{
 		ModulePath:  "github.com/thomas-maurice/gotify-nats-plugin",
@@ -60,7 +59,6 @@ type GotifyExtraNotification struct {
 	BigImageURL *string      `json:"bigImageUrl"`
 }
 
-// NatsPlugin is the gotify plugin instance.
 type NatsPlugin struct {
 	msgHandler plugin.MessageHandler
 	userCtx    plugin.UserContext
@@ -73,8 +71,6 @@ type NatsPlugin struct {
 	natsClient *nats.Conn
 }
 
-// SetMessageHandler implements plugin.Messenger
-// Invoked during initialization
 func (c *NatsPlugin) SetMessageHandler(h plugin.MessageHandler) {
 	c.msgHandler = h
 }
@@ -121,7 +117,8 @@ func (p *NatsPlugin) Disable() error {
 }
 
 func (p *NatsPlugin) consumeMessages() {
-	p.natsClient.Subscribe("gotify", func(m *nats.Msg) {
+	p.logger.Debugf("Listening on subject: %s", p.config.Subject)
+	p.natsClient.Subscribe(p.config.Subject, func(m *nats.Msg) {
 		p.logger.Debugf("recieved payload: %s", string(m.Data))
 
 		var msg NatsJSONMessage
@@ -164,9 +161,6 @@ func (p *NatsPlugin) consumeMessages() {
 		}
 
 		gotifyMsg.Extras["client::notification"] = gotifyExtrasNotification
-
-		b, _ := json.Marshal(gotifyMsg.Extras)
-		fmt.Println(string(b))
 
 		err = p.msgHandler.SendMessage(gotifyMsg)
 		if err != nil {
@@ -232,7 +226,7 @@ func (p *NatsPlugin) getNatsClient() (*nats.Conn, error) {
 				}
 				pubKey, err := key.PublicKey()
 				if err != nil {
-					return nil, fmt.Errorf("could not derive public key from keypaur: %w", err)
+					return nil, fmt.Errorf("could not derive public key from keypair: %w", err)
 				}
 				connOptions = append(connOptions, nats.Nkey(pubKey, func(nonce []byte) ([]byte, error) {
 					kp, err := nkeys.FromSeed([]byte(*p.config.Auth.Nkey))
@@ -269,7 +263,9 @@ func (p *NatsPlugin) GetDisplay(location *url.URL) string {
 
 	return fmt.Sprintf(`# gotify-nats-plugin
 
-Sends notifications to your Gotify app from a NATS stream.
+Sends notifications to your Gotify app from a NATS subscription.
+
+**WARNING**: Changing the configuration of the NATS connection requires a plugin restart (disable/enable)
 
 ## Plugin status
 

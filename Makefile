@@ -25,13 +25,13 @@ get-gotify-server-go-version: create-build-dir
 	wget -LO ${BUILDDIR}/gotify-server-go-version https://raw.githubusercontent.com/gotify/server/v${GOTIFY_VERSION}/GO_VERSION
 
 build-linux-amd64: get-gotify-server-go-version update-go-mod
-	${DOCKER_RUN} ${DOCKER_BUILD_IMAGE}:$(GO_VERSION)-linux-amd64 ${DOCKER_GO_BUILD} -o ${BUILDDIR}/${PLUGIN_NAME}-linux-amd64${FILE_SUFFIX}.so ${DOCKER_WORKDIR}
+	${DOCKER_RUN} ${DOCKER_BUILD_IMAGE}:$(GO_VERSION)-linux-amd64 ${DOCKER_GO_BUILD} -o ${BUILDDIR}/${PLUGIN_NAME}-for-${GOTIFY_VERSION}-linux-amd64${FILE_SUFFIX}.so ${DOCKER_WORKDIR}
 
 build: build-linux-amd64
 
 run:
 	if ! [ -d data/plugins ]; then mkdir -p data/plugins; fi
-	cp build/*amd64.so data/plugins
+	cp ${BUILDDIR}/${PLUGIN_NAME}-for-${GOTIFY_VERSION}-linux-amd64${FILE_SUFFIX}.so data/plugins/gotify-nats.so
 	docker run --user 1000:1000 --net host -e GOTIFY_SERVER_PORT=8080 -v ./data:/app/data -v ./gotify-config.yml:/etc/gotify/config.yml -it gotify/server:${GOTIFY_VERSION}
 
 .PHONY: build
