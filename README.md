@@ -30,7 +30,7 @@ To send it via the nats-cli:
 $ nats pub gotify '{"title": "hello world", "message": "this is **the message**", "priority": 10, "markdown": false, "url": "https://google.fr"}'
 ```
 
-# Supported authentication schemes
+## Supported authentication schemes
 
 The following authentication schemes are supported when connecting to a NATS server/cluster:
 
@@ -77,7 +77,7 @@ auth:
 debug: false
 ```
 
-# Compatibility matrix
+## Compatibility matrix
 
 Given the rapid development of NATS compared to Gotify and the number of core libs they share in common (`x/crypto` mainly)
 it is very hard and annoying (or even impossible) to release versions of the plugin for the X latest versions of Gotify. Indeed these will cause conflicts when trying to import the plugin.
