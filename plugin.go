@@ -18,7 +18,7 @@ func GetGotifyPluginInfo() plugin.Info {
 		ModulePath:  "github.com/thomas-maurice/gotify-nats-plugin",
 		Version:     "0.0.1",
 		Author:      "Thomas Maurice",
-		Website:     "https://gotify.net/docs/plugin",
+		Website:     "https://github.com/thomas-maurice/gotify-nats-plugin",
 		Description: "NATS Plugin",
 		License:     "MIT",
 		Name:        "NATS plugin",
@@ -220,16 +220,16 @@ func (p *NatsPlugin) getNatsClient() (*nats.Conn, error) {
 				p.logger.Debug("Using nkey authentication")
 				key, err := nkeys.FromSeed([]byte(*p.config.Auth.Nkey))
 				if err != nil {
-					return nil, fmt.Errorf("Could not derive key pair from seed: %w", err)
+					return nil, fmt.Errorf("could not derive key pair from seed: %w", err)
 				}
 				pubKey, err := key.PublicKey()
 				if err != nil {
-					return nil, fmt.Errorf("Could not derive public key from keypair: %w", err)
+					return nil, fmt.Errorf("could not derive public key from keypair: %w", err)
 				}
 				connOptions = append(connOptions, nats.Nkey(pubKey, func(nonce []byte) ([]byte, error) {
 					kp, err := nkeys.FromSeed([]byte(*p.config.Auth.Nkey))
 					if err != nil {
-						return nil, fmt.Errorf("Unable to derive key pair from seed: %w", err)
+						return nil, fmt.Errorf("unable to derive key pair from seed: %w", err)
 					}
 					defer kp.Wipe()
 
@@ -282,6 +282,9 @@ nats_server_url: nats://localhost:4222
 subject: gotify
 # Should we render the messages as markdown by default ?
 markdown: true
+# Default priority if none is specified
+default_message_priority: 5
+# Authentication config -- delete if no authentication is needed
 auth:
   # token is used *only* for token auth
   token: foobar
