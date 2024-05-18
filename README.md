@@ -30,6 +30,18 @@ To send it via the nats-cli:
 $ nats pub gotify '{"title": "hello world", "message": "this is **the message**", "priority": 10, "markdown": false, "url": "https://google.fr"}'
 ```
 
+# Supported authentication schemes
+
+The following authentication schemes are supported when connecting to a NATS server/cluster:
+
+* No authentication (boooooo)
+* Token
+* Username/Password
+* NKEY
+* NKEY + JWT token when the accounts are managed via an operator
+
+Note that for now self signed certificates are not supported.
+
 ## Configuration
 The plugin can be configured as so in the plugin config screen:
 ```yaml
