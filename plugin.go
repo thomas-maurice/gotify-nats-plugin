@@ -70,38 +70,31 @@ type NatsPlugin struct {
 	config *NatsPluginConfig
 
 	natsClient *nats.Conn
+
+	enabled bool
 }
 
 func (p *NatsPlugin) Enable() error {
 	p.logger.Info("Initialising NATS plugin")
 
+	p.enabled = true
+
+	return p.RecycleNatsConnection()
+}
+
+func (p *NatsPlugin) Disable() error {
+	p.logger.Debug("Disabling plugin")
 	if p.natsClient != nil {
 		p.natsClient.Close()
 	}
 
-	conn, err := p.getNatsClient()
-	if err != nil {
-		p.logger.WithError(err).Error("Failed to connect to NATS")
-		return err
-	}
-
-	p.natsClient = conn
-
-	go func() {
-		p.logger.Debug("Started listening on NATS messages")
-		p.consumeMessages()
-		p.natsClient.SetErrorHandler(func(c *nats.Conn, s *nats.Subscription, err error) {
-			p.logger.WithError(err).Error("NATS error occured")
-		})
-		p.natsClient.SetDisconnectHandler(func(c *nats.Conn) {
-			p.logger.Warn("NATS connection lost")
-		})
-		p.natsClient.SetReconnectHandler(func(c *nats.Conn) {
-			p.logger.Info("Connection to NATS server restored")
-		})
-	}()
+	p.enabled = false
 
 	return nil
+}
+
+func (p *NatsPlugin) SetMessageHandler(h plugin.MessageHandler) {
+	p.msgHandler = h
 }
 
 // RecycleNatsConnection replaces the currently used NATS connection.
@@ -133,15 +126,6 @@ func (p *NatsPlugin) RecycleNatsConnection() error {
 			p.logger.Info("Connection to NATS server restored")
 		})
 	}()
-
-	return nil
-}
-
-func (p *NatsPlugin) Disable() error {
-	p.logger.Debug("Disabling plugin")
-	if p.natsClient != nil {
-		p.natsClient.Close()
-	}
 
 	return nil
 }
@@ -230,11 +214,13 @@ func (p *NatsPlugin) ValidateAndSetConfig(c interface{}) error {
 	}
 	p.logger.Info("Validated configuration")
 
-	p.logger.Debug("Replacing NATS connection with the new config")
-	err := p.RecycleNatsConnection()
-	if err != nil {
-		p.logger.WithError(err).Error("Failed to replace the old NATS connection with the new one")
-		return err
+	if p.enabled {
+		p.logger.Debug("Replacing NATS connection with the new config")
+		err := p.RecycleNatsConnection()
+		if err != nil {
+			p.logger.WithError(err).Error("Failed to replace the old NATS connection with the new one")
+			return err
+		}
 	}
 
 	return nil
