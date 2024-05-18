@@ -27,7 +27,10 @@ get-gotify-server-go-version: create-build-dir
 build-linux-amd64: get-gotify-server-go-version update-go-mod
 	${DOCKER_RUN} ${DOCKER_BUILD_IMAGE}:$(GO_VERSION)-linux-amd64 ${DOCKER_GO_BUILD} -o ${BUILDDIR}/${PLUGIN_NAME}-for-${GOTIFY_VERSION}-linux-amd64${FILE_SUFFIX}.so ${DOCKER_WORKDIR}
 
-build: build-linux-amd64
+build-linux-arm64: get-gotify-server-go-version update-go-mod
+	${DOCKER_RUN} ${DOCKER_BUILD_IMAGE}:$(GO_VERSION)-linux-arm64 ${DOCKER_GO_BUILD} -o ${BUILDDIR}/${PLUGIN_NAME}-for-${GOTIFY_VERSION}-linux-arm64${FILE_SUFFIX}.so ${DOCKER_WORKDIR}
+
+build: build-linux-amd64 build-linux-arm64
 
 run:
 	if ! [ -d data/plugins ]; then mkdir -p data/plugins; fi
