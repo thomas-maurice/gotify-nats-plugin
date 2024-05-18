@@ -303,6 +303,13 @@ auth:
 # do we print debug messages ?
 debug: false
 `+"```"+`
+
+## Sending a message
+
+You can send a notification via the nats-cli sending a payload like this one for example:
+`+"```bash"+`
+$ nats pub gotify '{"title": "hello world", "message": "this is **the message**", "priority": 10, "markdown": false, "url": "https://google.fr"}'
+`+"```"+`
 `, pluginStatus)
 }
 
