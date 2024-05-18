@@ -61,8 +61,9 @@ type GotifyExtraNotification struct {
 
 type NatsPlugin struct {
 	msgHandler plugin.MessageHandler
-	userCtx    plugin.UserContext
-	basePath   string
+
+	userCtx  plugin.UserContext
+	basePath string
 
 	logger *logrus.Entry
 
@@ -71,13 +72,42 @@ type NatsPlugin struct {
 	natsClient *nats.Conn
 }
 
-func (c *NatsPlugin) SetMessageHandler(h plugin.MessageHandler) {
-	c.msgHandler = h
-}
-
 func (p *NatsPlugin) Enable() error {
 	p.logger.Info("Initialising NATS plugin")
 
+	if p.natsClient != nil {
+		p.natsClient.Close()
+	}
+
+	conn, err := p.getNatsClient()
+	if err != nil {
+		p.logger.WithError(err).Error("Failed to connect to NATS")
+		return err
+	}
+
+	p.natsClient = conn
+
+	go func() {
+		p.logger.Debug("Started listening on NATS messages")
+		p.consumeMessages()
+		p.natsClient.SetErrorHandler(func(c *nats.Conn, s *nats.Subscription, err error) {
+			p.logger.WithError(err).Error("NATS error occured")
+		})
+		p.natsClient.SetDisconnectHandler(func(c *nats.Conn) {
+			p.logger.Warn("NATS connection lost")
+		})
+		p.natsClient.SetReconnectHandler(func(c *nats.Conn) {
+			p.logger.Info("Connection to NATS server restored")
+		})
+	}()
+
+	return nil
+}
+
+// RecycleNatsConnection replaces the currently used NATS connection.
+// If none is establish it just creates a new one, otherwise it closes
+// the existing one and creates a new one.
+func (p *NatsPlugin) RecycleNatsConnection() error {
 	if p.natsClient != nil {
 		p.natsClient.Close()
 	}
@@ -200,6 +230,13 @@ func (p *NatsPlugin) ValidateAndSetConfig(c interface{}) error {
 	}
 	p.logger.Info("Validated configuration")
 
+	p.logger.Debug("Replacing NATS connection with the new config")
+	err := p.RecycleNatsConnection()
+	if err != nil {
+		p.logger.WithError(err).Error("Failed to replace the old NATS connection with the new one")
+		return err
+	}
+
 	return nil
 }
 
@@ -253,25 +290,33 @@ func (p *NatsPlugin) GetDisplay(location *url.URL) string {
 	if p.natsClient == nil {
 		pluginStatus = "No NATS client detected, is the plugin enabled ?"
 	} else {
-		pluginStatus += fmt.Sprintf("* Client closed: `%v`\n", p.natsClient.IsClosed())
+		connected := "❌"
+		if p.natsClient.IsConnected() {
+			connected = "✅"
+		}
+
+		opened := "❌"
+		if !p.natsClient.IsClosed() {
+			opened = "✅"
+		}
+
+		pluginStatus += fmt.Sprintf("* Client opened: %v\n", opened)
+		pluginStatus += fmt.Sprintf("* Client connected: %v\n", connected)
 		pluginStatus += fmt.Sprintf("* Connected server URL: `%v`\n", p.natsClient.ConnectedUrlRedacted())
 		pluginStatus += fmt.Sprintf("* Discovered servers: `%v`\n", p.natsClient.DiscoveredServers())
 		pluginStatus += fmt.Sprintf("* Last error: `%v`\n", p.natsClient.LastError())
+		pluginStatus += fmt.Sprintf("* Subscription: `%v`\n", p.config.Subject)
 	}
 
 	return fmt.Sprintf(`# gotify-nats-plugin
 
 Sends notifications to your Gotify app from a NATS subscription.
 
-**WARNING**: Changing the configuration of the NATS connection requires a plugin restart (disable/enable)
-
 ## Plugin status
 
 %s
 
 ## Configuration
-
-**WARNING**: A configuration change requires restarting the plugin (disable/enable)
 
 To configure the plugin, you need to configure it as follows:
 `+"```"+`yaml
@@ -308,7 +353,12 @@ debug: false
 
 You can send a notification via the nats-cli sending a payload like this one for example:
 `+"```bash"+`
-$ nats pub gotify '{"title": "hello world", "message": "this is **the message**", "priority": 10, "markdown": false, "url": "https://google.fr"}'
+$ nats pub gotify '{
+	"title": "hello world",
+	"message": "this is **the message**",
+	"priority": 10,
+	"markdown": false,
+	"url": "https://google.fr"}'
 `+"```"+`
 `, pluginStatus)
 }
