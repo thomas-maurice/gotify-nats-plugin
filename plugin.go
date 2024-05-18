@@ -169,11 +169,9 @@ func (p *NatsPlugin) consumeMessages() {
 	})
 }
 
-// RegisterWebhook implements plugin.Webhooker.
 func (p *NatsPlugin) RegisterWebhook(basePath string, mux *gin.RouterGroup) {
 	p.basePath = basePath
 	mux.POST("/hook", func(c *gin.Context) {
-
 	})
 }
 
@@ -222,16 +220,16 @@ func (p *NatsPlugin) getNatsClient() (*nats.Conn, error) {
 				p.logger.Debug("Using nkey authentication")
 				key, err := nkeys.FromSeed([]byte(*p.config.Auth.Nkey))
 				if err != nil {
-					return nil, fmt.Errorf("could not derive key pair from seed: %w", err)
+					return nil, fmt.Errorf("Could not derive key pair from seed: %w", err)
 				}
 				pubKey, err := key.PublicKey()
 				if err != nil {
-					return nil, fmt.Errorf("could not derive public key from keypair: %w", err)
+					return nil, fmt.Errorf("Could not derive public key from keypair: %w", err)
 				}
 				connOptions = append(connOptions, nats.Nkey(pubKey, func(nonce []byte) ([]byte, error) {
 					kp, err := nkeys.FromSeed([]byte(*p.config.Auth.Nkey))
 					if err != nil {
-						return nil, fmt.Errorf("unable to derive key pair from seed: %w", err)
+						return nil, fmt.Errorf("Unable to derive key pair from seed: %w", err)
 					}
 					defer kp.Wipe()
 
