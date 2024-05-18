@@ -19,7 +19,7 @@ func GetGotifyPluginInfo() plugin.Info {
 		Version:     "0.0.1",
 		Author:      "Thomas Maurice",
 		Website:     "https://github.com/thomas-maurice/gotify-nats-plugin",
-		Description: "NATS Plugin",
+		Description: "NATS Plugin -- Send messages from Gotify through NATS",
 		License:     "MIT",
 		Name:        "NATS plugin",
 	}
